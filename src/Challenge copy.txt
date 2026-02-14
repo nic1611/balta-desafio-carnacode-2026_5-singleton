@@ -10,16 +10,13 @@ namespace DesignPatternChallenge
 {
     // Contexto: Sistema que precisa de configurações centralizadas e consistentes
     // As configurações são carregadas de arquivos, variáveis de ambiente e banco de dados
-
+    
     public class ConfigurationManager
     {
-        private static readonly Lazy<ConfigurationManager> _instance = new(() => new ConfigurationManager());
-        public static ConfigurationManager Instance => _instance.Value;
-
         private Dictionary<string, string> _settings;
         private bool _isLoaded;
 
-        private ConfigurationManager()
+        public ConfigurationManager()
         {
             _settings = new Dictionary<string, string>();
             _isLoaded = false;
@@ -35,7 +32,7 @@ namespace DesignPatternChallenge
             }
 
             Console.WriteLine("🔄 Carregando configurações...");
-
+            
             // Simulando operação custosa de carregamento
             System.Threading.Thread.Sleep(200);
 
@@ -78,7 +75,7 @@ namespace DesignPatternChallenge
         public DatabaseService()
         {
             // Problema: Cada serviço cria sua própria instância
-            _config = ConfigurationManager.Instance;
+            _config = new ConfigurationManager();
         }
 
         public void Connect()
@@ -95,7 +92,7 @@ namespace DesignPatternChallenge
         public ApiService()
         {
             // Problema: Nova instância = novos carregamentos desnecessários
-            _config = ConfigurationManager.Instance;
+            _config = new ConfigurationManager();
         }
 
         public void MakeRequest()
@@ -112,7 +109,7 @@ namespace DesignPatternChallenge
         public CacheService()
         {
             // Problema: Mais uma instância duplicada
-            _config = ConfigurationManager.Instance;
+            _config = new ConfigurationManager();
         }
 
         public void Connect()
@@ -128,7 +125,7 @@ namespace DesignPatternChallenge
 
         public LoggingService()
         {
-            _config = ConfigurationManager.Instance;
+            _config = new ConfigurationManager();
         }
 
         public void Log(string message)
@@ -146,36 +143,31 @@ namespace DesignPatternChallenge
 
             // Problema 1: Múltiplas instâncias são criadas
             Console.WriteLine("Inicializando serviços...\n");
-
+            
             var dbService = new DatabaseService();
             var apiService = new ApiService();
             var cacheService = new CacheService();
             var logService = new LoggingService();
 
             Console.WriteLine("\nUsando os serviços...\n");
-
+            
             dbService.Connect();
             apiService.MakeRequest();
             cacheService.Connect();
             logService.Log("Sistema iniciado");
 
-            // Melhoria 2: Configurações são consistentes em todo o sistema
-            Console.WriteLine("\n--- Verificando Consistência ---\n");
-
-            var config1 = ConfigurationManager.Instance;
+            // Problema 2: Configurações podem ficar inconsistentes
+            Console.WriteLine("\n--- Tentativa de atualização ---\n");
+            
+            var config1 = new ConfigurationManager();
             config1.LoadConfigurations();
             config1.UpdateSetting("LogLevel", "Debug");
 
-            var config2 = ConfigurationManager.Instance;
-            // config2 não precisa carregar novamente, já é a mesma instância
+            var config2 = new ConfigurationManager();
+            config2.LoadConfigurations();
             Console.WriteLine($"Config1 LogLevel: {config1.GetSetting("LogLevel")}");
             Console.WriteLine($"Config2 LogLevel: {config2.GetSetting("LogLevel")}");
-
-            if (ReferenceEquals(config1, config2))
-            {
-                Console.WriteLine("✅ Sucesso: config1 e config2 referenciam a mesma instância!");
-            }
-            Console.WriteLine("✅ Consistência: Todas as instâncias compartilham os mesmos valores!");
+            Console.WriteLine("⚠️ Inconsistência: Instâncias diferentes têm valores diferentes!");
 
             // Problema 3: Desperdício de memória e processamento
             Console.WriteLine("\n--- Impacto de Performance ---");
